@@ -1,0 +1,13 @@
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.enlarged-chart-image {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+mat-dialog-content {
+  padding: 0 24px 24px;
+}

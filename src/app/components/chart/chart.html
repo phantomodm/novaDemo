@@ -1,0 +1,9 @@
+<div class="modal-header">
+    <h1 mat-dialog-title>Backtest Chart Analysis</h1>
+    <button (click)="closeDialog()" mat-icon-button mat-dialog-close aria-label="Close" cdkFocusInitial>
+      <mat-icon>close</mat-icon>
+    </button>
+    <mat-dialog-content>
+      <img [src]="data.plotUrl" alt="Enlarged Backtest CI Chart" class="enlarged-chart-image">
+    </mat-dialog-content>
+</div> 
