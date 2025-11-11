@@ -1,0 +1,60 @@
+/* Styles for the new "Global Alerts" tab */
+
+
+::ng-deep .mat-tab-header,
+::ng-deep .mat-mdc-tab-header {
+  background-color: #424242;
+}
+
+::ng-deep .mat-tab-label,
+::ng-deep .mat-mdc-tab-label {
+  color: #FFFFFF !important;
+  opacity: 1 !important;
+}
+
+.alert-list-container {
+  padding-top: 8px;
+}
+
+.alert-list-item {
+  cursor: pointer;
+}
+
+.alert-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Styles for the placeholder cards */
+.info-card-placeholder {
+  margin: 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.info-card-placeholder mat-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+.info-card-placeholder mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+}
+
+/* You should already have these status colors from the Kappa Legend.
+  This just re-uses them for the text and icons.
+*/
+.status-critical { color: #FF0000 !important; }
+.status-alert { color: #FFA500 !important; }
+.status-advisory { color: #FFFF00 !important; }
+.status-watch { color: #00BFFF !important; }
+.status-green { color: #32CD32 !important; }
+.status-stable { color: #32CD32 !important; }
+

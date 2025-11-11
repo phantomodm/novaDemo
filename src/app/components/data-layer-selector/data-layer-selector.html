@@ -1,0 +1,9 @@
+<mat-form-field class="full-width">
+  <mat-select [value]="selectedGlobeLayer()" (selectionChange)="onLayerChange($event)">
+    @for(key of globeLayerKeys; track key) {
+    <mat-option [value]="key">
+      {{ $any(globeLayerNames)[key] }}
+    </mat-option>
+    }
+  </mat-select>
+</mat-form-field>

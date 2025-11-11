@@ -1,0 +1,65 @@
+<mat-tab-group (selectedTabChange)="rightSidenav.open()">
+  <mat-tab label="Cell Inspector">
+    @if(selectedCell){
+    <div>
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-card-title>Grid Cell Analysis</mat-card-title>
+          <mat-card-subtitle
+            >Forecast Time: {{ selectedCell.forecast_time | date : 'short' }}</mat-card-subtitle
+          >
+        </mat-card-header>
+        <mat-card-content>
+          <p><strong>Continuity Index:</strong> {{ selectedCell.continuity_index.toFixed(4) }}</p>
+          <p>
+            <strong>Status:</strong>
+            <span
+              [class]="selectedCell.status === 'UNSTABLE' ? 'status-unstable' : 'status-stable'"
+              >{{ selectedCell.status }}</span
+            >
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    } @else {
+    <mat-card class="info-card-placeholder">
+      <mat-card-content>
+        <mat-icon>ads_click</mat-icon>
+        <p>Click a cell on the globe to inspect its details.</p>
+      </mat-card-content>
+    </mat-card>
+    }
+  </mat-tab>
+
+  <mat-tab [label]="'Global Alerts (' + alertList.length + ')'">
+    <div class="alert-list-container">
+      @if(alertList.length > 0) {
+      <mat-list role="list">
+        @for(cell of alertList; track cell.properties.cell_id) {
+        <mat-list-item role="listitem" (click)="panToCell(cell)" class="alert-list-item">
+          <mat-icon matListItemIcon [class]="globalStatusClass()">
+            {{ getStatusIcon(cell.properties.status) }}
+          </mat-icon>
+          <div matListItemTitle [class]="globalStatusClass()">
+            {{ cell.properties.status }}
+          </div>
+          <div matListItemLine>
+            <span
+              >Cell ID: {{ cell.properties.cell_id }} (κ:
+              {{ 1.0 - cell.properties.continuity_index | number : '1.2-2' }})</span
+            >
+          </div>
+        </mat-list-item>
+        }
+      </mat-list>
+      } @else {
+      <mat-card class="info-card-placeholder">
+        <mat-card-content>
+          <mat-icon>check_circle_outline</mat-icon>
+          <p>All cells are GREEN. No active alerts.</p>
+        </mat-card-content>
+      </mat-card>
+      }
+    </div>
+  </mat-tab>
+</mat-tab-group>

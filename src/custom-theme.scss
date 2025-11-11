@@ -33,3 +33,47 @@ body {
   // Reset the user agent margin.
   margin: 0;
 }
+.info-panel .mat-mdc-tab-group {
+  /* This sets the color of the text for the INACTIVE tabs */
+  --mdc-tab-text-label-color-inactive: rgba(255, 255, 255, 0.7);
+  
+  /* This sets the color of the text for the ACTIVE tab */
+  --mdc-tab-text-label-color-active: white;
+  
+  /* This sets the color of the underline (ink bar) */
+  --mdc-tab-indicator-active-indicator-color: white;
+}
+// :root {
+//   @include mat.tabs-overrides((
+//     active-focus-indicator-color: orange,
+//     active-focus-label-text-color: red,
+//   ));
+// }
+/* Set the background color of the tab header */
+.mat-tab-header {
+  background-color: #424242;
+}
+
+/* Set the default (inactive) tab label text color to white */
+/* Use !important if necessary to override Angular Material's default styles */
+.mat-tab-label {
+  color: #FFFFFF !important;
+  opacity: 0.7; /* Optional: use lower opacity for inactive tabs to distinguish them */
+}
+
+/* Set the active tab label text color to a brighter white */
+.mat-tab-label-active {
+  color: #FFFFFF !important;
+  opacity: 1;
+}
+
+/* For Angular Material v15+ (if applicable) */
+.mat-mdc-tab-label {
+    color: #FFFFFF !important;
+    opacity: 0.7;
+}
+
+.mat-mdc-tab-label-active {
+    color: #FFFFFF !important;
+    opacity: 1;
+}

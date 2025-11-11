@@ -1,0 +1,14 @@
+.summary-container {
+  padding: 24px;
+}
+.status-success {
+  color: #32CD32; /* Lime Green */
+  font-weight: bold;
+}
+.status-failed {
+  color: #FF0000; /* Red */
+  font-weight: bold;
+}
+table {
+  width: 100%;
+}

@@ -1,0 +1,44 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.chart-container {
+  height: 150px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.chart-placeholder {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.detail-subtitle {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  padding: 0 16px; /* Align with mat-card-content */
+}
+
+.driver-list {
+  padding-top: 0;
+}
+
+.driver-item .mat-icon {
+  color: #FFA500; /* Orange */
+}
+
+/* Override ngx-charts text colors for dark mode */
+:host ::ng-deep .ngx-charts text {
+  fill: rgba(255, 255, 255, 0.7) !important;
+}
+
+:host ::ng-deep .ngx-charts .grid-line {
+  stroke: rgba(255, 255, 255, 0.2) !important;
+}  

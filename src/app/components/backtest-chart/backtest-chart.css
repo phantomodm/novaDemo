@@ -1,0 +1,29 @@
+.chart-container {
+  height: 400px;
+  width: 100%;
+}
+
+.toggles-container {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.toggles-container h4 {
+  margin-top: 0;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* Make ngx-charts text visible in dark mode */
+:host ::ng-deep .ngx-charts text {
+  fill: rgba(255, 255, 255, 0.9) !important;
+}
+:host ::ng-deep .ngx-charts .grid-line {
+  stroke: rgba(255, 255, 255, 0.2) !important;
+}

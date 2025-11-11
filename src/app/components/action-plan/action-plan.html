@@ -1,0 +1,29 @@
+@if (user.tier === 'ci') {
+
+<mat-divider style="margin: 16px 0"></mat-divider>
+<h4 class="detail-subtitle">CI Actions</h4>
+
+<div class="action-panel">
+  <button mat-flat-button color="accent" (click)="onGeneratePlan()" [disabled]="isGeneratingPlan">
+    @if(isGeneratingPlan) {
+    <mat-progress-spinner mode="indeterminate" diameter="20"></mat-progress-spinner>
+    } @else {
+        <ng-container>
+          <mat-icon>assignment</mat-icon>
+          Generate Action Plan
+        </ng-container>    
+    }
+  </button>
+
+  <button mat-stroked-button color="primary" (click)="onRunSimulation()" [disabled]="isSimulating">
+    @if(isSimulating) {
+    <mat-progress-spinner mode="indeterminate" diameter="20"></mat-progress-spinner>
+    } @else {
+      <ng-container>
+        <mat-icon>water_damage</mat-icon>
+      </ng-container>
+    Run "What-if" Tsunami }
+  </button>
+</div>
+
+}

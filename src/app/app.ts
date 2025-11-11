@@ -1,13 +1,15 @@
 import {
   Component,
+  computed,
   signal,
   OnInit,
   inject,
   AfterViewInit,
   ElementRef,
   viewChild,
+  effect,
   NgZone,
-  ChangeDetectorRef
+  ChangeDetectorRef,
 } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CesiumService } from './core/services/cesium';
@@ -20,19 +22,38 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatChipsModule, MatChipSet, MatChip } from '@angular/material/chips';
 import { MatListModule } from '@angular/material/list';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { Observable, Subscription, interval, of } from 'rxjs';
-import { switchMap, takeWhile, finalize, startWith, debounceTime, distinctUntilChanged, map, tap } from 'rxjs/operators';
+import {
+  switchMap,
+  takeWhile,
+  finalize,
+  startWith,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  tap,
+} from 'rxjs/operators';
 import { ForecastService } from './core/services/forecast';
 import { EventSearchResult, GridForecastResponse, BacktestJob } from './interface/types';
 import { Chart as ChartModalComponent } from './components/chart/chart';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-
-declare let Cesium: any;
+import { DataLayerSelector } from './components/data-layer-selector/data-layer-selector';
+import { KappaLegend } from './components/kappa-legend/kappa-legend';
+import { GlobalAlert } from './components/global-alert/global-alert';
+import { CellDetail } from './components/cell-detail/cell-detail';
+import { ActionPlan } from './components/action-plan/action-plan';
+import * as Cesium from 'cesium';
+import { DataLayerKey } from './core/models/features.model';
+import { GlobeState } from './core/services/globe-state';
+import { BacktestChart } from "./components/backtest-chart/backtest-chart";
+import { BacktestSummary as BacktestSummaryComponent } from "./components/backtest-summary/backtest-summary";
+//declare let Cesium: any;
 Cesium.Ion.defaultAccessToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiMDFmZjdiZS1mZWU0LTQ5MzktOTgxMC1jZTE2ZGE1YjhmMGUiLCJpZCI6MzUxMzI5LCJpYXQiOjE3NjA2NjI2NjF9.y_HaG_nTARNbnLD_S0FQUwEcUFJypnZ2kGxha2MgUjw';
 
@@ -46,6 +67,7 @@ Cesium.Ion.defaultAccessToken =
     MatIconModule,
     MatButtonModule,
     MatCardModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatSliderModule,
@@ -54,13 +76,23 @@ Cesium.Ion.defaultAccessToken =
     MatDialogModule,
     MatAutocompleteModule,
     ReactiveFormsModule,
-    ChartModalComponent
-  ],
+    ChartModalComponent,
+    DataLayerSelector,
+    KappaLegend,
+    GlobalAlert,
+    MatChipSet,
+    MatChip,
+    CellDetail,
+    ActionPlan,
+    BacktestChart,
+    BacktestSummaryComponent,
+],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App implements OnInit, AfterViewInit {
   private forecastService = inject(ForecastService);
+  private globeStateService = inject(GlobeState);
   private sanitizer = inject(DomSanitizer);
   private ngZone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
@@ -87,15 +119,44 @@ export class App implements OnInit, AfterViewInit {
   searchControl = new FormControl();
   filteredEvents$!: Observable<EventSearchResult[]>;
 
-  constructor() {}
-  
+  // --- Properties for Global Status ---
+  globalStatus = this.forecastService.globalStatus;
+  statusClass = computed(() => {
+    const status = this.globalStatus();
+    return `status-${status.toLowerCase().replace('_plus', '')}`;
+  });
+
+  constructor() {
+    effect(() => {
+      // 1. Get the current values from the signals
+      const gridData = this.forecastService.gridData();
+      const selectedLayerKey = this.globeStateService.selectedLayer();
+
+      // 2. Honor your constraint: "do not update without both values present"
+      //    We also must check if the 'viewer' has been initialized
+      if (gridData && selectedLayerKey && this.viewer) {
+        // 3. Run the heavy rendering logic outside Angular's zone
+        this.ngZone.runOutsideAngular(() => {
+          this.renderGrid(gridData, selectedLayerKey);
+        });
+      } else if (this.viewer) {
+        // If data is null (e.g., loading or error), clear the globe
+        this.ngZone.runOutsideAngular(() => {
+          this.viewer.entities.removeAll();
+        });
+      }
+    });
+  }
+
   displayEvent(event: EventSearchResult): string {
     return event && event.name ? `${event.name} (${event.mag})` : '';
   }
 
   flyToEvent(lat: number, lon: number, name: string) {
-    console.log(lat,lon,name)
-    if(!this.viewer || !this.viewer.scene || !this.viewer.camera) { return; }
+    console.log(lat, lon, name);
+    if (!this.viewer || !this.viewer.scene || !this.viewer.camera) {
+      return;
+    }
     this.viewer.entities.removeAll();
     const position = Cesium.Cartesian3.fromDegrees(lon, lat, 1500000);
     this.viewer.camera.flyTo({
@@ -103,52 +164,60 @@ export class App implements OnInit, AfterViewInit {
       orientation: {
         heading: Cesium.Math.toRadians(0),
         pitch: Cesium.Math.toRadians(-90),
-        roll: 0
+        roll: 0,
       },
-      duration: 3
+      duration: 3,
     });
     this.viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(lon, lat),
-      point: { pixelSize: 15, color: Cesium.Color.RED, outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
+      point: {
+        pixelSize: 15,
+        color: Cesium.Color.RED,
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+      },
       label: {
-            text: name || 'Event Location',
-            font: '16px sans-serif',
-            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-            fillColor: Cesium.Color.WHITE,
-            outlineColor: Cesium.Color.BLACK,
-            outlineWidth: 2,
-            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            pixelOffset: new Cesium.Cartesian2(0, -20) 
-          }
+        text: name || 'Event Location',
+        font: '16px sans-serif',
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new Cesium.Cartesian2(0, -20),
+      },
     });
   }
 
   ngOnInit(): void {
     //this.cesium.plotPoints("cesium");
+    //this.rightSidenav().open();
     this.filteredEvents$ = this.searchControl.valueChanges.pipe(
       startWith(''),
       debounceTime(300),
       distinctUntilChanged(),
-      tap(value => {console.log('Autocomplete input:', value);}),
-      switchMap(value => {
+      tap((value) => {
+        console.log('Autocomplete input:', value);
+      }),
+      switchMap((value) => {
         const query = typeof value === 'string' ? value : value?.name;
-        return this.forecastService.searchEvents(query || '')
-          .pipe(
-            map((earthquake) => earthquake.map((e) => {
-              const labelText = `M${e.mag} – ${e.date} ${e.name.split(" - ")[1]}`;
+        return this.forecastService.searchEvents(query || '').pipe(
+          map((earthquake) =>
+            earthquake.map((e) => {
+              const labelText = `M${e.mag} – ${e.date} ${e.name.split(' - ')[1]}`;
               return { ...e, name: labelText };
-            }) )
-          );
+            })
+          )
+        );
       })
     );
   }
 
   ngAfterViewInit(): void {
     this.initiateGlobe();
-    this.loadGridData();
     // We must initialize the viewer after the view is ready
   }
-  initiateGlobe(){
+  initiateGlobe() {
     this.ngZone.runOutsideAngular(() => {
       this.viewer = new Cesium.Viewer(this.cesiumContainer().nativeElement, {
         animation: false,
@@ -195,43 +264,58 @@ export class App implements OnInit, AfterViewInit {
       const dialogRef = this.dialog.open(ChartModalComponent, {
         width: '90vw',
         maxWidth: '1200px',
-        data: { plotUrl: this.backtestPlot }
+        data: { plotUrl: this.backtestPlot },
       });
-      
+
       dialogRef.afterClosed().subscribe((result) => {
-        if(result !== undefined){
+        if (result !== undefined) {
           console.log('The dialog was closed');
           this.rightSidenav().close();
         }
-      })
+      });
     }
   }
-  loadGridData() {
-    this.forecastService.getGridForecast().subscribe({
-      next: (geoJsonData) => {
-        this.ngZone.runOutsideAngular(() => {
-          console.log(geoJsonData)
-          this.renderGrid(geoJsonData);
-        });
-      },
-      error: (err) => {
-        console.error("Failed to load grid forecast data", err);
-      }
-    });
-  }
-  renderGrid(geoJsonData: GridForecastResponse) {
+
+  renderGrid(geoJsonData: GridForecastResponse, selectedLayerKey: DataLayerKey | string) {
+    if (!this.viewer) return;
     // Clear any existing polygons
     this.viewer.entities.removeAll();
 
-    geoJsonData.features.forEach(feature => {
+    geoJsonData.features.forEach((feature:any) => {
       const ciValue = feature.properties.continuity_index;
+      let valueToRender = 0.0;
+      let color: Cesium.Color;
+      let label = 'Unknown';
+
+      try {
+        if (selectedLayerKey === 'final_ci') {
+          // 1. Use the "Final CI" (Stability: 0.0-1.0)
+          valueToRender = feature.properties.continuity_index;
+          label = 'Final Fused CI (Stability)';
+          color = this.getColorForCI(valueToRender);
+        } else {
+          // 2. Use a "Raw Feature" (Anomaly: 0.0-1.0)
+          // Parse the JSON string to get the 30-day history
+          const featureHistory = JSON.parse(feature.properties.features_json);
+          // Get the most recent day's data
+          const latestDay = featureHistory[featureHistory.length - 1];
+
+          valueToRender = latestDay[selectedLayerKey] || 0;
+          label = this.globeStateService.layerNames[selectedLayerKey as DataLayerKey];
+          color = this.getColorForFeature(valueToRender);
+        }
+      } catch (e) {
+        console.error('Error parsing feature data for cell:', feature.properties.cell_id, e);
+        // Fallback on error: transparent
+        color = Cesium.Color.BLACK.withAlpha(0.0);
+      }
 
       this.viewer.entities.add({
         polygon: {
           hierarchy: Cesium.Cartesian3.fromDegreesArray(feature.geometry.coordinates[0].flat()),
           material: this.getColorForCI(ciValue).withAlpha(0.6),
           outline: true,
-          outlineColor: Cesium.Color.WHITE.withAlpha(0.1)
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.1),
         },
         properties: feature.properties,
         description: `
@@ -239,20 +323,63 @@ export class App implements OnInit, AfterViewInit {
             <strong>Continuity Index:</strong> ${ciValue.toFixed(4)} <br>
             <strong>Status:</strong> ${feature.properties.status}
           </div>
-        `
+        `,
       });
     });
   }
-  getColorForCI(ci: number): any {
-    if (ci < 0.1) return Cesium.Color.YELLOW; // Unstable
-    if (ci < 0.5) return Cesium.Color.ORANGE; // Elevated Risk
-    // For stable, let's use a transparent or very dark blue so it blends in
-    return Cesium.Color.fromCssColorString('#1E90FF').withAlpha(0.2); 
+
+  /**
+   * Returns a color based on the "Kappa" alert status
+   * (Assumes CI is a stability score from 0.0 to 1.0)
+   */
+  getColorForCI(ciValue: number): Cesium.Color {
+    // Convert 0.0-1.0 stability score to 1.0-0.0 instability score (Kappa)
+    const kappa = 1.0 - ciValue;
+
+    // These colors match your kappa-engine.css
+    if (kappa >= 1.25) return Cesium.Color.RED; // CRITICAL
+    if (kappa >= 0.95) return Cesium.Color.ORANGE; // ALERT
+    if (kappa >= 0.85) return Cesium.Color.YELLOW; // ADVISORY
+    if (kappa >= 0.75) return Cesium.Color.DEEPSKYBLUE; // WATCH
+
+    // Default to a semi-transparent green for STABLE
+    return Cesium.Color.LIMEGREEN.withAlpha(0.5); // GREEN
+  }
+
+  /**
+   * Returns a simple "heat" color for raw feature data
+   * (Assumes value is a normalized anomaly score 0.0 to 1.0)
+   */
+  getColorForFeature(value: number): Cesium.Color {
+    if (value <= 0.01) {
+      // No anomaly, make it mostly transparent
+      return Cesium.Color.BLUE.withAlpha(0.2);
+    }
+    // Simple heatmap: blue (low) -> yellow (mid) -> red (high)
+    return Cesium.Color.fromHsl(
+      0.6 * (1.0 - value), // Hue (0.6=Blue, 0.3=Green, 0.1=Yellow, 0.0=Red)
+      1.0, // Saturation
+      0.5 // Lightness
+    );
+  }
+
+  /**
+   * Opens a modal dialog to display the
+   * historical backtest summary table.
+   */
+  openBacktestSummary(): void {
+    this.dialog.open(BacktestSummaryComponent, {
+      width: '80vw', // Make it wide
+      maxWidth: '1200px',
+      autoFocus: false
+    });
   }
 
   runBacktest() {
     const selectedEvent = this.searchControl.value as EventSearchResult;
-    if (!selectedEvent || !selectedEvent.id) { return; }
+    if (!selectedEvent || !selectedEvent.id) {
+      return;
+    }
     //this.flyToEvent(selectedEvent.lat, selectedEvent.lon, selectedEvent.name);
     this.backtestState = 'processing';
     this.backtestResult = null;
@@ -261,30 +388,34 @@ export class App implements OnInit, AfterViewInit {
 
     this.forecastService.startBacktest(selectedEvent.id, this.monthsBefore).subscribe({
       next: (job: BacktestJob) => {
-          this.backtestJobId = job.job_id;
-          console.log('Backtest job started with ID:', job.job_id);
-          this.pollForResults(job.job_id);
+        this.backtestJobId = job.job_id;
+        console.log('Backtest job started with ID:', job.job_id);
+        this.pollForResults(job.job_id);
       },
       error: (err) => {
-          this.backtestState = 'failed';
-          this.backtestError = 'Could not start the job.';
-      }
+        this.backtestState = 'failed';
+        this.backtestError = 'Could not start the job.';
+      },
     });
   }
 
   pollForResults(jobId: string): void {
-    if (!jobId) { return; }
-    if(this.pollingSubscription){
+    if (!jobId) {
+      return;
+    }
+    if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
     }
-    this.pollingSubscription = interval(3000).pipe(
-      switchMap(() => this.forecastService.getBacktestResults(jobId)),
-      tap((r) => console.log(r)),
-      takeWhile((status) => status.status === 'processing', true),
-    ).subscribe({
-      next: (status) => {
-        console.log(status)
-        if (status.status === 'complete') {
+    this.pollingSubscription = interval(3000)
+      .pipe(
+        switchMap(() => this.forecastService.getBacktestResults(jobId)),
+        tap((r) => console.log(r)),
+        takeWhile((status) => status.status === 'processing', true)
+      )
+      .subscribe({
+        next: (status) => {
+          console.log(status);
+          if (status.status === 'complete') {
             this.backtestState = 'complete';
             this.backtestResult = status.result;
             this.flyToEvent(
@@ -292,16 +423,17 @@ export class App implements OnInit, AfterViewInit {
               this.backtestResult.event_details.lon,
               this.backtestResult.event_details.name
             );
-            this.backtestPlot = this.sanitizer.bypassSecurityTrustUrl('data:image/png;base64,' + status.result.plot_base64);
-        } else if (status.status === 'failed') {
+            this.backtestPlot = this.sanitizer.bypassSecurityTrustUrl(
+              'data:image/png;base64,' + status.result.plot_base64
+            );
+          } else if (status.status === 'failed') {
             this.backtestState = 'failed';
             this.backtestError = 'Backtest job failed on server.';
             this.rightSidenav().close();
-        } else {
+          } else {
             console.log('Backtest job still processing...');
-        }
-      }
-    });
+          }
+        },
+      });
   }
-
 }

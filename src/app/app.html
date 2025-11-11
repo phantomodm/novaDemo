@@ -1,122 +1,210 @@
+<style>
+  /* Positions the tier badge */
+  .tier-badge-list {
+    margin-right: 8px;
+    /* Removes pointer events since it's just a display */
+    pointer-events: none;
+  }
+
+  /* Styles the chip itself */
+  .tier-badge-list mat-chip-option {
+    --mdc-chip-elevated-container-color: rgba(255, 255, 255, 0.15);
+    --mdc-chip-label-text-color: white;
+    font-weight: 600;
+    cursor: default !important;
+  }
+
+  /* Styles the icon inside the chip */
+  .tier-badge-list mat-chip-option mat-icon {
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
+    margin-right: 6px;
+    margin-left: -4px;
+  }
+</style>
+
 <mat-toolbar color="primary" class="main-toolbar">
   <button mat-icon-button (click)="leftSidenav.toggle()">
     <mat-icon>menu</mat-icon>
   </button>
   <h1>Continuity Engine</h1>
   <span class="toolbar-spacer"></span>
+  @if (globalStatus(); as status) {
+  <div class="global-status">
+    <mat-icon [class]="statusClass()">
+      @switch (status) { @case ('GREEN') { check_circle } @case ('WATCH') { visibility } @case
+      ('ADVISORY') { info } @case ('ALERT') { warning } @case ('CRITICAL') { crisis_alert } @case
+      ('PRECRITICAL_PLUS') { crisis_alert } @default { help_outline } }
+    </mat-icon>
+    <span>Global Status: {{ status }}</span>
+  </div>
+  }
   <div class="global-status">
     <mat-icon class="status-icon-stable">check_circle</mat-icon>
     <span>Global Status: STABLE</span>
   </div>
+  <!-- @if (user.tier === 'ci') {} -->
+  <mat-chip-set class="tier-badge-list">
+    <mat-chip color="accent" disabled>
+      <mat-icon>verified</mat-icon>
+      Aegis-CI
+    </mat-chip>
+  </mat-chip-set>
   <button mat-icon-button>
     <mat-icon>account_circle</mat-icon>
   </button>
 </mat-toolbar>
 <mat-sidenav-container class="sidenav-container">
-    <!-- Left Sidenav (Control Panel) -->
-      <mat-sidenav #leftSidenav mode="side" opened="true" class="sidenav">
-        <mat-card class="control-card">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>update</mat-icon>
-            <mat-card-title>Live Forecast</mat-card-title>
-            <mat-card-subtitle>Last Updated: 16-Oct-2025 14:32 UTC</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <p class="legend-title">Legend</p>
-            <mat-list role="list">
-              <mat-list-item role="listitem"><mat-icon class="legend-icon unstable">square</mat-icon> <span style="color:white">Unstable (CI < 0.1)</span></mat-list-item>
-              <mat-list-item role="listitem"><mat-icon class="legend-icon warning">square</mat-icon> <span style="color:white">Elevated Risk (CI < 0.5)</span></mat-list-item>
-              <mat-list-item role="listitem"><mat-icon class="legend-icon stable">square</mat-icon> <span style="color:white">Stable (CI > 0.8)</span></mat-list-item>
-            </mat-list>
-          </mat-card-content>
-        </mat-card>
+  <!-- Left Sidenav (Control Panel) -->
+  <mat-sidenav #leftSidenav mode="side" opened="true" class="sidenav">
+    <mat-card class="control-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>update</mat-icon>
+        <mat-card-title>Live Forecast</mat-card-title>
+        <mat-card-subtitle>Last Updated: 16-Oct-2025 14:32 UTC</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-data-layer-selector></app-data-layer-selector>
+        <app-kappa-legend></app-kappa-legend>
+      </mat-card-content>
+    </mat-card>
 
-        <mat-card class="control-card">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>science</mat-icon>
-            <mat-card-subtitle>Historical Backtest</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <!-- <mat-form-field class="full-width">
+    <mat-card class="control-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>science</mat-icon>
+        <mat-card-subtitle>Historical Backtest</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <!-- <mat-form-field class="full-width">
               <mat-label class="placeholder">Search Events by Name</mat-label>
               <input matInput placeholder="e.g., Tohoku, Chile">
             </mat-form-field> -->
-            <mat-form-field class="full-width" appearance="fill">
-              <mat-label>Search Historical Events</mat-label>
-              <input type="text" matInput [formControl]="searchControl" [matAutocomplete]="auto">
-              <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayEvent">
-                @for(event of (filteredEvents$ | async); track event){
-                  <mat-option  [value]="event">
-                  {{event.name}}
-                </mat-option>
-                }
-                
-              </mat-autocomplete>
-            </mat-form-field>
-            <mat-label>Months Before Event: {{ monthsBefore }}</mat-label>
-            <mat-slider min="1" max="24" step="1" discrete>
-              <input matSliderThumb [(ngModel)]="monthsBefore">
-            </mat-slider>
-            <button mat-flat-button color="accent" class="full-width" (click)="runBacktest()">
-              Run Backtest
-            </button>
-          </mat-card-content>
-        </mat-card>
-      </mat-sidenav>
-      <!-- Main Content (Globe) -->
-      <mat-sidenav-content class="main-content">
-        <!-- This div is the target for our Cesium globe -->
-         <!-- <div id="cesium" #cesiumContainer class="globe-container"></div> -->
-        <div #cesiumContainer class="globe-container"></div>
-      </mat-sidenav-content>
-      <!-- Right Sidenav (Information Panel) -->
-      <mat-sidenav #rightSidenav mode="over" position="end" class="sidenav info-panel">
-        @if(backtestState === 'processing') {
-          <div>
-            <mat-card class="info-card">
-              <mat-card-header><mat-card-title>Backtest in Progress</mat-card-title></mat-card-header>
-              <mat-card-content class="processing-content">
-                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                <p>Job ID: {{ backtestJobId }}</p>
-                <p>Status: Processing ⏳</p>
-              </mat-card-content>
-            </mat-card>
+        <mat-form-field class="full-width" appearance="fill">
+          <mat-label>Search Historical Events</mat-label>
+          <input type="text" matInput [formControl]="searchControl" [matAutocomplete]="auto" />
+          <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayEvent">
+            @for(event of (filteredEvents$ | async); track event){
+            <mat-option [value]="event">
+              {{ event.name }}
+            </mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+        <mat-label>Months Before Event: {{ monthsBefore }}</mat-label>
+        <mat-slider min="1" max="24" step="1" discrete>
+          <input matSliderThumb [(ngModel)]="monthsBefore" />
+        </mat-slider>
+        <button mat-flat-button color="accent" class="full-width" (click)="runBacktest()">
+          Run Backtest
+        </button>
+        <button
+          mat-stroked-button
+          class="full-width"
+          (click)="openBacktestSummary()"
+          style="margin-top: 12px"
+        >
+          <mat-icon>assessment</mat-icon>
+          View Model Performance
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </mat-sidenav>
+  <!-- Main Content (Globe) -->
+  <mat-sidenav-content class="main-content">
+    <!-- This div is the target for our Cesium globe -->
+    <!-- <div id="cesium" #cesiumContainer class="globe-container"></div> -->
+    <div #cesiumContainer class="globe-container"></div>
+    <button mat-fab color="accent" class="right-sidenav-fab" (click)="rightSidenav.toggle()">
+      <mat-icon>info_outline</mat-icon>
+    </button>
+  </mat-sidenav-content>
+  <!-- Right Sidenav (Information Panel) -->
+  <mat-sidenav #rightSidenav mode="over" position="end" class="sidenav info-panel">
+    <div class="sidenav-header">
+      <span class="sidenav-header-spacer"></span>
+      <button mat-icon-button (click)="rightSidenav.close()" aria-label="Close sidenav">
+        <mat-icon style="color: white">close</mat-icon>
+      </button>
+    </div>
+    <app-global-alert></app-global-alert>
+    @if(backtestState === 'processing') {
+    <div>
+      <mat-card class="info-card">
+        <mat-card-header><mat-card-title>Backtest in Progress</mat-card-title></mat-card-header>
+        <mat-card-content class="processing-content">
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+          <p>Job ID: {{ backtestJobId }}</p>
+          <p>Status: Processing ⏳</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    } @if(backtestState === 'complete' && backtestResult){
+    <div>
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-card-title>Backtest Complete ✅</mat-card-title>
+          <mat-card-subtitle>Event: {{ backtestResult.event_details.name }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>
+            <strong>Date:</strong> {{ backtestResult.event_details.date }} | <strong>Mag:</strong>
+            {{ backtestResult.event_details.mag }}
+          </p>
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">Final Alert State</span>
+              <span class="status-value" [class]="statusClass()">
+                {{ backtestResult.final_alert_state }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Sustained Lead Time</span>
+              <span class="status-value"> {{ backtestResult.lead_time_days }} Days </span>
+            </div>
           </div>
-        }
-        
-        @if(backtestState === 'complete' && backtestResult){
-          <div>
-          <mat-card class="info-card">
-            <mat-card-header>
-               <mat-card-title>Backtest Complete ✅</mat-card-title>
-               <mat-card-subtitle>Event: {{ backtestResult.event_details.name }}</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-                <p><strong>Date:</strong> {{ backtestResult.event_details.date }} | <strong>Mag:</strong> {{ backtestResult.event_details.mag }}</p>
-                <!-- Image is now clickable to open the modal -->
-                <img [src]="backtestPlot" alt="Backtest CI Chart" class="chart-image clickable" (click)="openChartModal()">
-            </mat-card-content>
-          </mat-card>
-        </div>
-        }
-
-        @if(selectedCell){
-          <!-- NEW: Panel for Selected Grid Cell -->
-          <div>
-            <mat-card class="info-card">
-              <mat-card-header>
-                <mat-card-title>Grid Cell Analysis</mat-card-title>
-                <mat-card-subtitle>Forecast Time: {{ selectedCell.forecast_time | date:'short' }}</mat-card-subtitle>
-              </mat-card-header>
-              <mat-card-content>
-                  <p><strong>Continuity Index:</strong> {{ selectedCell.continuity_index.toFixed(4) }}</p>
-                  <p><strong>Status:</strong> <span [ngClass]="selectedCell.status === 'UNSTABLE' ? 'status-unstable' : 'status-stable'">{{ selectedCell.status }}</span></p>
-                  <!-- In the future, a historical chart for this cell would go here -->
-              </mat-card-content>
-            </mat-card>
-          </div>
-        }
-        
-      </mat-sidenav>
+          <mat-divider style="margin: 16px 0"></mat-divider>
+          <!-- Image is now clickable to open the modal -->
+          <img
+            [src]="backtestPlot"
+            alt="Backtest CI Chart"
+            class="chart-image clickable"
+            (click)="openChartModal()"
+          />
+          <app-backtest-chart
+            [ciTimeseries]="backtestResult.ci_timeseries"
+            [featuresJson]="backtestResult.features_json"
+          >
+          </app-backtest-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    } @if(selectedCell){
+    <!-- NEW: Panel for Selected Grid Cell -->
+    <div>
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-card-title>Grid Cell Analysis</mat-card-title>
+          <mat-card-subtitle
+            >Forecast Time: {{ selectedCell.forecast_time | date : 'short' }}</mat-card-subtitle
+          >
+        </mat-card-header>
+        <mat-card-content>
+          <p><strong>Continuity Index:</strong> {{ selectedCell.continuity_index.toFixed(4) }}</p>
+          <p>
+            <strong>Status:</strong>
+            <span
+              [class]="selectedCell.status === 'UNSTABLE' ? 'status-unstable' : 'status-stable'"
+              >{{ selectedCell.status }}</span
+            >
+          </p>
+          <mat-divider style="margin: 12px 0"></mat-divider>
+          <app-cell-detail [selectedCell]="selectedCell"></app-cell-detail>
+          <app-action-plan [selectedCell]="selectedCell"></app-action-plan>
+          <!-- In the future, a historical chart for this cell would go here -->
+        </mat-card-content>
+      </mat-card>
+    </div>
+    }
+  </mat-sidenav>
 </mat-sidenav-container>
-

@@ -1,0 +1,30 @@
+/* Add these to your CSS file */
+
+.legend-icon {
+  margin-right: 8px;
+  font-size: 20px;
+}
+
+.legend-text {
+  color: white;
+  font-size: 14px;
+}
+
+/* These are just suggestions. 
+  Feel free to change the colors.
+*/
+.status-critical {
+  color: #FF0000; /* Bright Red */
+}
+.status-alert {
+  color: #FFA500; /* Orange */
+}
+.status-advisory {
+  color: #FFFF00; /* Yellow */
+}
+.status-watch {
+  color: #00BFFF; /* Deep Sky Blue */
+}
+.status-green {
+  color: #32CD32; /* Lime Green */
+}

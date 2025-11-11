@@ -1,0 +1,40 @@
+@if(selectedCell){
+  <div class="chart-container">
+    @if(chartData.length > 0) {
+      <ngx-charts-line-chart
+        [results]="chartData"
+        [scheme]="colorScheme"
+        [gradient]="chartGradient"
+        [xAxis]="true"
+        [yAxis]="true"
+        [legend]="false"
+        [showXAxisLabel]="false"
+        [showYAxisLabel]="true"
+        yAxisLabel="Stability (CI)"
+        [autoScale]="true"
+        [yScaleMin]="0"
+        [yScaleMax]="1"
+        [timeline]="false">
+      </ngx-charts-line-chart>
+    } @else {
+      <div class="chart-placeholder">
+        <p>No historical data to display.</p>
+      </div>
+    }
+  </div>
+
+  @if(topDrivers.length > 0) {
+    <h4 class="detail-subtitle">Top Anomaly Drivers</h4>
+    <mat-list role="list" class="driver-list">
+      @for(driver of topDrivers; track driver.id) {
+        <mat-list-item role="listitem" class="driver-item">
+          <mat-icon matListItemIcon>{{ driver.icon }}</mat-icon>
+          <div matListItemTitle>{{ driver.name }}</div>
+          <div matListItemLine>
+            Normalized Score: {{ driver.value | number:'1.2-2' }}
+          </div>
+        </mat-list-item>
+      }
+    </mat-list>
+  }
+}

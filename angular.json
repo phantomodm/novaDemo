@@ -45,8 +45,8 @@
               }
             ],
             "styles": [
-              "src/custom-theme.scss",
               "src/styles.css",
+              "src/custom-theme.scss",
               "node_modules/cesium/Build/Cesium/Widgets/widgets.css"
             ],
             "scripts": [

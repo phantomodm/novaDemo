@@ -9,42 +9,156 @@
 .main-content {
   padding: 0;
 }
-:host { display: flex; flex-direction: column; height: 100vh; background-color: #303030; color: #fff; }
-    .main-toolbar { flex-shrink: 0; }
-    .toolbar-spacer { flex: 1 1 auto; }
-    .global-status { display: flex; align-items: center; margin: 0 16px; font-size: 14px; }
-    .status-icon-stable { color: #81c784; margin-right: 8px; }
-    .sidenav-container { flex: 1; }
-    .sidenav { width: 320px; padding: 16px; background-color: #424242; }
-    .info-panel { width: 400px; }
-    .control-card, .info-card { margin-bottom: 20px; background-color: #212121; color: #fff; }
-    .full-width { width: 100%; }
-    mat-slider { width: 100%; }
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #303030;
+  color: #fff;
+}
+.main-toolbar {
+  flex-shrink: 0;
+}
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+.global-status {
+  display: flex;
+  align-items: center;
+  margin: 0 16px;
+  font-size: 14px;
+}
+.status-icon-stable {
+  color: #81c784;
+  margin-right: 8px;
+}
+.sidenav-container {
+  flex: 1;
+}
+.sidenav {
+  width: 320px;
+  padding: 16px;
+  background-color: #424242;
+}
+.right-sidenav-fab {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10; /* Ensures it's above the globe */
+}
+.info-panel {
+  width: 400px;
+}
+.control-card,
+.info-card {
+  margin-bottom: 20px;
+  background-color: #212121;
+  color: #fff;
+}
+.full-width {
+  width: 100%;
+}
+mat-slider {
+  width: 100%;
+}
 
-    .globe-container {
-        width: 100%;
-        height: 100%;
-    }
-    
-    /* --- FIXES for Text and Icon Visibility --- */
-    .control-card mat-list-item {
-      color: rgba(255, 255, 255, 0.87) !important; /* Force override with high specificity */
-    }
-    .info-card mat-card-content {
-      color: rgba(255, 255, 255, 0.87); /* Standard light text for all card content */
-    }
-    .control-card mat-card-subtitle, 
-    .info-card mat-card-subtitle {
-      color: rgba(255, 255, 255, 0.7); /* Lighter color for subtitles and labels */
-    }
-    mat-label.placeholder {
-      color: black;
-    }
-    .legend-title { font-weight: bold; margin-top: 16px; margin-bottom: 8px; }
-    .legend-icon { margin-right: 8px; }
-    .legend-icon.unstable { color: #ffd740; }
-    .legend-icon.warning { color: #ffab40; }
-    .legend-icon.stable { color: #69f0ae; }
-    .processing-content { text-align: center; padding-top: 20px; }
-    .chart-image { width: 100%; border-radius: 4px; margin-top: 16px; background-color: #666; }
-    .clickable { cursor: pointer; }
+.globe-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- FIXES for Text and Icon Visibility --- */
+.control-card mat-list-item {
+  color: rgba(255, 255, 255, 0.87) !important; /* Force override with high specificity */
+}
+.info-card mat-card-content {
+  color: rgba(255, 255, 255, 0.87); /* Standard light text for all card content */
+}
+.control-card mat-card-subtitle,
+.info-card mat-card-subtitle {
+  color: rgba(255, 255, 255, 0.7); /* Lighter color for subtitles and labels */
+}
+mat-label.placeholder {
+  color: black;
+}
+.legend-title {
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+.legend-icon {
+  margin-right: 8px;
+}
+.legend-icon.unstable {
+  color: #ffd740;
+}
+.legend-icon.warning {
+  color: #ffab40;
+}
+.legend-icon.stable {
+  color: #69f0ae;
+}
+.processing-content {
+  text-align: center;
+  padding-top: 20px;
+}
+.chart-image {
+  width: 100%;
+  border-radius: 4px;
+  margin-top: 16px;
+  background-color: #666;
+}
+.clickable {
+  cursor: pointer;
+}
+/* * Styles for the new 'X' button
+ * in the right sidenav
+ */
+.sidenav-header {
+  display: flex;
+  color: white;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 8px 0 8px; /* Add some padding */
+  background-color: #424242; /* Match your sidenav bg */
+}
+
+/* This is just in case you add a title later */
+.sidenav-header-spacer {
+  flex: 1 1 auto;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.status-value {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: white;
+}
+
+/* Re-use your status colors */
+.status-critical { color: #FF0000 !important; }
+.status-alert { color: #FFA500 !important; }
+.status-advisory { color: #FFFF00 !important; }
+.status-watch { color: #00BFFF !important; }
+.status-green { color: #32CD32 !important; }
+.status-stable { color: #32CD32 !important; }

@@ -1,0 +1,32 @@
+<div class=chart-container>
+  @if(chartData().length > 0) {
+    <ngx-charts-line-chart
+      [results]="chartData"
+      [scheme]="colorScheme"
+      [xAxis]="true"
+      [yAxis]="true"
+      [legend]="true"
+      legendTitle="Chart Legend"
+      [showXAxisLabel]="true"
+      [showYAxisLabel]="true"
+      xAxisLabel="Date"
+      yAxisLabel="Normalized Anomaly / Instability"
+      [autoScale]="true"
+      [timeline]="true">
+    </ngx-charts-line-chart>
+  }
+</div>
+
+<div class='toggles-container'>
+  <h4>Feature Layers</h4>
+  <p>Select features to overlay on the chart:</p>
+  <div class='checkbox-grid'>
+    @for(driver of driverNames() | keyvalue; track driver.key) {
+    <mat-checkbox 
+      [checked]="isToggleChecked(driver.key)"
+      (change)="onToggleChange(driver.key, $event.checked)">
+      {{ $any(driver.value).name }}
+    </mat-checkbox>
+  }
+  </div>
+</div>
