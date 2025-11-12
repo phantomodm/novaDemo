@@ -48,11 +48,14 @@ import { KappaLegend } from './components/kappa-legend/kappa-legend';
 import { GlobalAlert } from './components/global-alert/global-alert';
 import { CellDetail } from './components/cell-detail/cell-detail';
 import { ActionPlan } from './components/action-plan/action-plan';
+import { ForecastFeature, ForecastResponse } from './core/models/features.model';
 import * as Cesium from 'cesium';
 import { DataLayerKey } from './core/models/features.model';
 import { GlobeState } from './core/services/globe-state';
-import { BacktestChart } from "./components/backtest-chart/backtest-chart";
-import { BacktestSummary as BacktestSummaryComponent } from "./components/backtest-summary/backtest-summary";
+import { BacktestChart } from './components/backtest-chart/backtest-chart';
+import { BacktestSummaryComponent } from './components/backtest-summary/backtest-summary';
+import { GisDataService } from './core/services/gis-data';
+
 //declare let Cesium: any;
 Cesium.Ion.defaultAccessToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiMDFmZjdiZS1mZWU0LTQ5MzktOTgxMC1jZTE2ZGE1YjhmMGUiLCJpZCI6MzUxMzI5LCJpYXQiOjE3NjA2NjI2NjF9.y_HaG_nTARNbnLD_S0FQUwEcUFJypnZ2kGxha2MgUjw';
@@ -86,13 +89,14 @@ Cesium.Ion.defaultAccessToken =
     ActionPlan,
     BacktestChart,
     BacktestSummaryComponent,
-],
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App implements OnInit, AfterViewInit {
   private forecastService = inject(ForecastService);
   private globeStateService = inject(GlobeState);
+  private gisDataService = inject(GisDataService);
   private sanitizer = inject(DomSanitizer);
   private ngZone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
@@ -126,6 +130,9 @@ export class App implements OnInit, AfterViewInit {
     return `status-${status.toLowerCase().replace('_plus', '')}`;
   });
 
+  private gnssStationsData: ForecastResponse | null = null;
+  private faultLinesData: ForecastResponse | null = null;
+
   constructor() {
     effect(() => {
       // 1. Get the current values from the signals
@@ -137,7 +144,7 @@ export class App implements OnInit, AfterViewInit {
       if (gridData && selectedLayerKey && this.viewer) {
         // 3. Run the heavy rendering logic outside Angular's zone
         this.ngZone.runOutsideAngular(() => {
-          this.renderGrid(gridData, selectedLayerKey);
+          this.renderGlobeLayers(gridData, selectedLayerKey);
         });
       } else if (this.viewer) {
         // If data is null (e.g., loading or error), clear the globe
@@ -192,6 +199,12 @@ export class App implements OnInit, AfterViewInit {
   ngOnInit(): void {
     //this.cesium.plotPoints("cesium");
     //this.rightSidenav().open();
+    this.gisDataService.getGnssStations().subscribe((data:any) => {
+      this.gnssStationsData = data;
+    });
+    this.gisDataService.getFaultLines().subscribe((data) => {
+      this.faultLinesData = data;
+    });
     this.filteredEvents$ = this.searchControl.valueChanges.pipe(
       startWith(''),
       debounceTime(300),
@@ -276,58 +289,88 @@ export class App implements OnInit, AfterViewInit {
     }
   }
 
-  renderGrid(geoJsonData: GridForecastResponse, selectedLayerKey: DataLayerKey | string) {
+  renderGlobeLayers(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string) {
     if (!this.viewer) return;
-    // Clear any existing polygons
+
+    // Clear all entities
     this.viewer.entities.removeAll();
 
-    geoJsonData.features.forEach((feature:any) => {
-      const ciValue = feature.properties.continuity_index;
-      let valueToRender = 0.0;
-      let color: Cesium.Color;
-      let label = 'Unknown';
+    // --- 1. Draw the primary grid data (if it's loaded) ---
+    if (geoJsonData) {
+      geoJsonData.features.forEach((feature: ForecastFeature) => {
+        let valueToRender = 0.0;
+        let color: Cesium.Color;
 
-      try {
-        if (selectedLayerKey === 'final_ci') {
-          // 1. Use the "Final CI" (Stability: 0.0-1.0)
-          valueToRender = feature.properties.continuity_index;
-          label = 'Final Fused CI (Stability)';
-          color = this.getColorForCI(valueToRender);
-        } else {
-          // 2. Use a "Raw Feature" (Anomaly: 0.0-1.0)
-          // Parse the JSON string to get the 30-day history
-          const featureHistory = JSON.parse(feature.properties.features_json);
-          // Get the most recent day's data
-          const latestDay = featureHistory[featureHistory.length - 1];
-
-          valueToRender = latestDay[selectedLayerKey] || 0;
-          label = this.globeStateService.layerNames[selectedLayerKey as DataLayerKey];
-          color = this.getColorForFeature(valueToRender);
+        // ... (This is your existing logic from renderGrid)
+        try {
+          if (selectedLayerKey === 'final_ci') {
+            valueToRender = feature.properties.continuity_index;
+            color = this.getColorForCI(valueToRender);
+          } else {
+            const featureHistory = JSON.parse(feature.properties.features_json);
+            const latestDay = featureHistory[featureHistory.length - 1];
+            valueToRender = latestDay[selectedLayerKey] || 0;
+            color = this.getColorForFeature(valueToRender);
+          }
+        } catch (e) {
+          color = Cesium.Color.BLACK.withAlpha(0.0);
         }
-      } catch (e) {
-        console.error('Error parsing feature data for cell:', feature.properties.cell_id, e);
-        // Fallback on error: transparent
-        color = Cesium.Color.BLACK.withAlpha(0.0);
-      }
 
-      this.viewer.entities.add({
-        polygon: {
-          hierarchy: Cesium.Cartesian3.fromDegreesArray(feature.geometry.coordinates[0].flat()),
-          material: this.getColorForCI(ciValue).withAlpha(0.6),
-          outline: true,
-          outlineColor: Cesium.Color.WHITE.withAlpha(0.1),
-        },
-        properties: feature.properties,
-        description: `
+        this.viewer.entities.add({
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArray(feature.geometry.coordinates[0].flat()),
+            material: color.withAlpha(0.6),
+            outline: true,
+            outlineColor: Cesium.Color.WHITE.withAlpha(0.1),
+          },
+          properties: feature.properties,
+          description: `...`, // Your tooltip
+        });
+      });
+    }
+
+    // --- 2. Draw the GNSS Stations (if selected) ---
+    if (selectedLayerKey === 'gnss_stations' && this.gnssStationsData) {
+      this.gnssStationsData.features.forEach((station:any) => {
+        this.viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(
+            station.geometry.coordinates[0],
+            station.geometry.coordinates[1]
+          ),
+          point: {
+            pixelSize: 6,
+            color: Cesium.Color.AQUA,
+          },
+          properties: station.properties,
+          description: `
           <div class="tooltip">
-            <strong>Continuity Index:</strong> ${ciValue.toFixed(4)} <br>
-            <strong>Status:</strong> ${feature.properties.status}
+            <strong>Station:</strong> ${station.properties.station_id} <br>
+            <strong>Name:</strong> ${station.properties.station_name}
           </div>
         `,
+        });
       });
-    });
-  }
+    }
 
+    // --- 3. Draw the Fault Lines (if selected) ---
+    if (selectedLayerKey === 'fault_lines' && this.faultLinesData) {
+      this.faultLinesData.features.forEach((fault:any) => {
+        this.viewer.entities.add({
+          polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(fault.geometry.coordinates.flat()),
+            width: 2,
+            material: Cesium.Color.RED,
+          },
+          properties: fault.properties,
+          description: `
+          <div class="tooltip">
+            <strong>Fault Line</strong>
+          </div>
+        `,
+        });
+      });
+    }
+  }
   /**
    * Returns a color based on the "Kappa" alert status
    * (Assumes CI is a stability score from 0.0 to 1.0)
@@ -371,7 +414,7 @@ export class App implements OnInit, AfterViewInit {
     this.dialog.open(BacktestSummaryComponent, {
       width: '80vw', // Make it wide
       maxWidth: '1200px',
-      autoFocus: false
+      autoFocus: false,
     });
   }
 

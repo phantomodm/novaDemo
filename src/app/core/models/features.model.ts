@@ -39,11 +39,40 @@ export interface ForecastResponse {
   features: ForecastFeature[];
 }
 
+/**
+ * Interface for a single row in the 'backtest_results' table.
+ * This represents the final summary for a single backtested event
+ * (either an unstable quake or a stable period).
+ */
+export interface BacktestSummary {
+  // Note: 'event_name' is not in the database table,
+  // so it is not included here.
+  
+  event_date: string;       // ISO timestamp string
+  event_mag: number;        // e.g., 9.1 or 0 (for stable)
+  event_lat: number;        // e.g., 38.322
+  event_lon: number;        // e.g., 142.369
+  cell_id: number;          // e.g., 588
+  status: 'SUCCESS' | 'FAILED'; // 'SUCCESS' (1) or 'FAILED' (0)
+  lead_time_days: number;   // e.g., 28 or 0
+}
+
+/**
+ * Interface for the full API response from the
+ * GET /v1/backtest/summary endpoint.
+ */
+export interface BacktestSummaryResponse {
+  status: 'success' | 'error';
+  results: BacktestSummary[];
+}
+
 export interface FeatureDay { time: string; [key: string]: any; }
 export interface ChartDataPoint { name: Date; value: number; }
 export interface ChartSeries { name: string; series: ChartDataPoint[]; }
 export const DATA_LAYERS = {
   'final_ci': 'Final Fused CI (Alerts)',
+  'gnss_stations': 'GIS: GNSS Stations',
+  'fault_lines': 'GIS: Tectonic Faults',
   'f1_seismic_rate': 'f1: Seismic Rate',
   'f2_gnss_anomaly': 'f2: GNSS Anomaly',
   'f3_tec_anomaly': 'f3: TEC Anomaly',

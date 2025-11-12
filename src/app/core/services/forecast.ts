@@ -2,7 +2,7 @@ import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, catchError, tap, switchMap, timer } from 'rxjs';
 import { GridForecastResponse, EventSearchResult } from '../../interface/types';
-import { STATUS_RANK, ForecastFeature, StatusKey } from '../models/features.model';
+import { STATUS_RANK, ForecastFeature, StatusKey, ForecastResponse, BacktestSummaryResponse, BacktestSummary} from '../models/features.model';
 
 // Define the API response for the action plan
 export interface ActionPlan {
@@ -18,10 +18,8 @@ export interface SimulationResult {
   result_url: string;
 }
 
-interface ForecastResponse {
-  type: "FeatureCollection";
-  features: ForecastFeature[];
-}
+
+
 
 @Injectable({
   providedIn: 'root'
@@ -87,8 +85,8 @@ export class ForecastService {
   }
 
   // In ForecastService or a new BacktestService
-  getBacktestSummary(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/api/v1/backtest/summary`);
+  getBacktestSummary(): Observable<BacktestSummaryResponse> {
+    return this.http.get<BacktestSummaryResponse>(`${this.apiUrl}/api/v1/backtest/summary`);
   }
 
   // New method to fetch the live grid data
