@@ -11,6 +11,7 @@ import {
   NgZone,
   ChangeDetectorRef,
 } from '@angular/core';
+//import { SwPush } from '@angular/service-worker';
 import { RouterOutlet } from '@angular/router';
 import { CesiumService } from './core/services/cesium';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
@@ -287,6 +288,32 @@ export class App implements OnInit, AfterViewInit {
         }
       });
     }
+  }
+
+  subscribeToAlerts() {
+    // 1. Subscribe to the "global_alerts" topic
+    // (This requires setting up your AngularFire/Service Worker)
+    // ... logic to get permission and subscribe to "global_alerts" ...
+
+    // 2. Listen for incoming messages
+    this.swPush.messages.subscribe(
+      (payload: any) => {
+        console.log('Push notification received:', payload);
+        
+        const title = payload.notification.title;
+        const body = payload.notification.body;
+        const cellId = payload.data.cell_id;
+
+        // 3. Show a snackbar
+        this.snackBar.open(body, 'View', {
+          duration: 10000,
+          panelClass: ['alert-snackbar']
+        }).onAction().subscribe(() => {
+          // Pan the globe to the cell when the user clicks "View"
+          // this.panToCellById(cellId);
+        });
+      }
+    );
   }
 
   renderGlobeLayers(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string) {
