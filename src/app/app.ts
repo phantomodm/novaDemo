@@ -16,9 +16,11 @@ import { RouterOutlet } from '@angular/router';
 import { CesiumService } from './core/services/cesium';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import {MatSnackBar} from '@angular/material/snack-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSliderModule } from '@angular/material/slider';
@@ -98,6 +100,7 @@ export class App implements OnInit, AfterViewInit {
   private forecastService = inject(ForecastService);
   private globeStateService = inject(GlobeState);
   private gisDataService = inject(GisDataService);
+  private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
   private ngZone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
@@ -290,31 +293,31 @@ export class App implements OnInit, AfterViewInit {
     }
   }
 
-  subscribeToAlerts() {
-    // 1. Subscribe to the "global_alerts" topic
-    // (This requires setting up your AngularFire/Service Worker)
-    // ... logic to get permission and subscribe to "global_alerts" ...
+  // subscribeToAlerts() {
+  //   // 1. Subscribe to the "global_alerts" topic
+  //   // (This requires setting up your AngularFire/Service Worker)
+  //   // ... logic to get permission and subscribe to "global_alerts" ...
 
-    // 2. Listen for incoming messages
-    this.swPush.messages.subscribe(
-      (payload: any) => {
-        console.log('Push notification received:', payload);
+  //   // 2. Listen for incoming messages
+  //   this.swPush.messages.subscribe(
+  //     (payload: any) => {
+  //       console.log('Push notification received:', payload);
         
-        const title = payload.notification.title;
-        const body = payload.notification.body;
-        const cellId = payload.data.cell_id;
+  //       const title = payload.notification.title;
+  //       const body = payload.notification.body;
+  //       const cellId = payload.data.cell_id;
 
-        // 3. Show a snackbar
-        this.snackBar.open(body, 'View', {
-          duration: 10000,
-          panelClass: ['alert-snackbar']
-        }).onAction().subscribe(() => {
-          // Pan the globe to the cell when the user clicks "View"
-          // this.panToCellById(cellId);
-        });
-      }
-    );
-  }
+  //       // 3. Show a snackbar
+  //       this.snackBar.open(body, 'View', {
+  //         duration: 10000,
+  //         panelClass: ['alert-snackbar']
+  //       }).onAction().subscribe(() => {
+  //         // Pan the globe to the cell when the user clicks "View"
+  //         // this.panToCellById(cellId);
+  //       });
+  //     }
+  //   );
+  // }
 
   renderGlobeLayers(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string) {
     if (!this.viewer) return;
