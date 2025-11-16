@@ -26,6 +26,7 @@ export class DataLayerSelector {
   // --- NEW: Update the local property on change ---
   onLayerChange(event: MatSelectChange) {
     const layerKey = event.value;
+    console.log('Selected Layer Key:', layerKey);
     this.globeStateService.setSelectedLayer(layerKey);
   }
 }

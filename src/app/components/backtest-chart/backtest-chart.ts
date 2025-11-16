@@ -13,7 +13,6 @@ import { NgxChartsModule, ScaleType, Color } from '@swimlane/ngx-charts';
     CommonModule,
     NgxChartsModule,
     MatCheckboxModule,
-
   ],
   templateUrl: './backtest-chart.html',
   styleUrls: ['./backtest-chart.css']
@@ -37,8 +36,10 @@ export class BacktestChart {
     const mainSeries = this.mainCiSeries();
     const toggles = this.featureToggles();
     const features = this.rawFeatures();
-
-    if (!mainSeries) return [];
+    
+    if (!mainSeries || !mainSeries.series) { 
+      return []; 
+    }
 
     const newChartData: ChartSeries[] = [mainSeries];
 
@@ -109,6 +110,10 @@ export class BacktestChart {
         this.featureToggles.set({});
       }
     });
+  }
+
+  ngOnInit(): void {
+    console.log(this.ciTimeseries(), this.featuresJson());
   }
 
   // --- ADD THIS NEW HELPER FUNCTION ---

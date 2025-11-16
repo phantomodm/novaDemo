@@ -1,5 +1,5 @@
 <div class=chart-container>
-  @if(chartData().length > 0) {
+  @if(chartData() && chartData().length > 0) {
     <ngx-charts-line-chart
       [results]="chartData"
       [scheme]="colorScheme"

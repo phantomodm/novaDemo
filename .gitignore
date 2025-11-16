@@ -48,3 +48,6 @@ Thumbs.db
 firebase.json
 firestore.indexes.json
 firestore.rules
+
+/public
+/public/*

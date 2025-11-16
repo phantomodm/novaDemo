@@ -42,7 +42,8 @@
                 "glob": "**/*",
                 "input": "node_modules/cesium/Build/Cesium/ThirdParty",
                 "output": "/assets/cesium/ThirdParty/"
-              }
+              },
+              "src/firebase-messaging-sw.js"
             ],
             "styles": [
               "src/styles.css",

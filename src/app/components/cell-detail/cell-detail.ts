@@ -85,11 +85,14 @@ export class CellDetail {
           finalCI *= ciComponent;
         }
       }
-      
-      ciSeries.push({
-        name: new Date(day.time),
-        value: finalCI // Store the 0.0-1.0 stability score
-      });
+      if (ciSeries.length > 0) {
+        ciSeries.push({
+          name: new Date(day.time),
+          value: finalCI // Store the 0.0-1.0 stability score
+        });
+      } else {
+        this.chartData = [];
+      }
     }
 
     this.chartData = [{

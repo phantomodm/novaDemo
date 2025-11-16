@@ -82,7 +82,12 @@
             </mat-form-field> -->
         <mat-form-field class="full-width" appearance="fill">
           <mat-label>Search Historical Events</mat-label>
-          <input type="text" matInput [formControl]="searchControl" [matAutocomplete]="auto" />
+          <input type="text" matInput [formControl]="searchControl" [matAutocomplete]="auto" >
+          @if (searchControl.value) {
+            <button matSuffix matIconButton aria-label="Clear" (click)="searchControl.setValue('')">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
           <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayEvent">
             @for(event of (filteredEvents$ | async); track event){
             <mat-option [value]="event">
@@ -199,7 +204,7 @@
             >
           </p>
           <mat-divider style="margin: 12px 0"></mat-divider>
-          <app-cell-detail [selectedCell]="selectedCell"></app-cell-detail>
+          <app-cell-detail [selectedCell]="selectedCell.properties"></app-cell-detail>
           <app-action-plan [selectedCell]="selectedCell"></app-action-plan>
           <!-- In the future, a historical chart for this cell would go here -->
         </mat-card-content>

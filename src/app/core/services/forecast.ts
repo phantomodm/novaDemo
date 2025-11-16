@@ -42,7 +42,12 @@ export class ForecastService {
   private startPolling(): void {
     timer(0, 60000).pipe( // 0s delay, then every 60,000 ms
       switchMap(() => this.fetchForecastData())
-    ).subscribe();
+    ).subscribe({
+      next: () => {},
+      error: (err) => {
+        console.error("Polling error:", err);
+      }
+    });
   }
 
   private fetchForecastData(): Observable<ForecastResponse | null> {

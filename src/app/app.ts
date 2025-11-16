@@ -32,6 +32,7 @@ import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { Observable, Subscription, interval, of } from 'rxjs';
+import { getMessaging, getToken, onMessage, MessagePayload } from 'firebase/messaging';
 import {
   switchMap,
   takeWhile,
@@ -42,6 +43,7 @@ import {
   map,
   tap,
 } from 'rxjs/operators';
+import { Firebase } from './core/services/firebase';
 import { ForecastService } from './core/services/forecast';
 import { EventSearchResult, GridForecastResponse, BacktestJob } from './interface/types';
 import { Chart as ChartModalComponent } from './components/chart/chart';
@@ -100,6 +102,7 @@ export class App implements OnInit, AfterViewInit {
   private forecastService = inject(ForecastService);
   private globeStateService = inject(GlobeState);
   private gisDataService = inject(GisDataService);
+  private firebaseService = inject(Firebase);
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
   private ngZone = inject(NgZone);
@@ -159,6 +162,7 @@ export class App implements OnInit, AfterViewInit {
     });
   }
 
+
   displayEvent(event: EventSearchResult): string {
     return event && event.name ? `${event.name} (${event.mag})` : '';
   }
@@ -169,7 +173,7 @@ export class App implements OnInit, AfterViewInit {
       return;
     }
     this.viewer.entities.removeAll();
-    const position = Cesium.Cartesian3.fromDegrees(lon, lat, 1500000);
+    const position = Cesium.Cartesian3.fromDegrees(lon, lat, 15000000);
     this.viewer.camera.flyTo({
       destination: position,
       orientation: {
@@ -177,7 +181,7 @@ export class App implements OnInit, AfterViewInit {
         pitch: Cesium.Math.toRadians(-90),
         roll: 0,
       },
-      duration: 3,
+      duration: 3
     });
     this.viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(lon, lat),
@@ -203,6 +207,8 @@ export class App implements OnInit, AfterViewInit {
   ngOnInit(): void {
     //this.cesium.plotPoints("cesium");
     //this.rightSidenav().open();
+    // this.firebaseService.requestPermission();
+    // this.firebaseService.listenForMessages();
     this.gisDataService.getGnssStations().subscribe((data:any) => {
       this.gnssStationsData = data;
     });
@@ -234,6 +240,7 @@ export class App implements OnInit, AfterViewInit {
     this.initiateGlobe();
     // We must initialize the viewer after the view is ready
   }
+  
   initiateGlobe() {
     this.ngZone.runOutsideAngular(() => {
       this.viewer = new Cesium.Viewer(this.cesiumContainer().nativeElement, {
@@ -491,6 +498,7 @@ export class App implements OnInit, AfterViewInit {
           if (status.status === 'complete') {
             this.backtestState = 'complete';
             this.backtestResult = status.result;
+
             this.flyToEvent(
               this.backtestResult.event_details.lat,
               this.backtestResult.event_details.lon,
