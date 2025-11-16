@@ -10,6 +10,7 @@ import {
   effect,
   NgZone,
   ChangeDetectorRef,
+  WritableSignal
 } from '@angular/core';
 //import { SwPush } from '@angular/service-worker';
 import { RouterOutlet } from '@angular/router';
@@ -137,21 +138,25 @@ export class App implements OnInit, AfterViewInit {
     return `status-${status.toLowerCase().replace('_plus', '')}`;
   });
 
-  private gnssStationsData: ForecastResponse | null = null;
-  private faultLinesData: ForecastResponse | null = null;
+  // private gnssStationsData: ForecastResponse | null = null;
+  // private faultLinesData: ForecastResponse | null = null;
+  private gnssStationsData: WritableSignal<ForecastResponse | null> = signal(null);
+  private faultLinesData: WritableSignal<ForecastResponse | null> = signal(null);
 
   constructor() {
     effect(() => {
       // 1. Get the current values from the signals
       const gridData = this.forecastService.gridData();
       const selectedLayerKey = this.globeStateService.selectedLayer();
+      const gnssData = this.gnssStationsData(); // <-- Read new signal
+      const faultData = this.faultLinesData(); // <-- Read new sign
 
       // 2. Honor your constraint: "do not update without both values present"
       //    We also must check if the 'viewer' has been initialized
       if (gridData && selectedLayerKey && this.viewer) {
         // 3. Run the heavy rendering logic outside Angular's zone
         this.ngZone.runOutsideAngular(() => {
-          this.renderGlobeLayers(gridData, selectedLayerKey);
+          this.renderGlobeLayers(gridData, selectedLayerKey, gnssData, faultData);
         });
       } else if (this.viewer) {
         // If data is null (e.g., loading or error), clear the globe
@@ -210,10 +215,10 @@ export class App implements OnInit, AfterViewInit {
     // this.firebaseService.requestPermission();
     // this.firebaseService.listenForMessages();
     this.gisDataService.getGnssStations().subscribe((data:any) => {
-      this.gnssStationsData = data;
+      this.gnssStationsData.set(data);
     });
     this.gisDataService.getFaultLines().subscribe((data) => {
-      this.faultLinesData = data;
+      this.faultLinesData.set(data);
     });
     this.filteredEvents$ = this.searchControl.valueChanges.pipe(
       startWith(''),
@@ -326,14 +331,16 @@ export class App implements OnInit, AfterViewInit {
   //   );
   // }
 
-  renderGlobeLayers(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string) {
+  renderGlobeLayers(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string, gnssData: ForecastResponse | null,
+    faultData: ForecastResponse | null) {
+
     if (!this.viewer) return;
 
     // Clear all entities
     this.viewer.entities.removeAll();
 
     // --- 1. Draw the primary grid data (if it's loaded) ---
-    if (geoJsonData) {
+    if (geoJsonData && geoJsonData.features.length > 0) {
       geoJsonData.features.forEach((feature: ForecastFeature) => {
         let valueToRender = 0.0;
         let color: Cesium.Color;
@@ -367,8 +374,8 @@ export class App implements OnInit, AfterViewInit {
     }
 
     // --- 2. Draw the GNSS Stations (if selected) ---
-    if (selectedLayerKey === 'gnss_stations' && this.gnssStationsData) {
-      this.gnssStationsData.features.forEach((station:any) => {
+    if (selectedLayerKey === 'gnss_stations' && gnssData) {
+      gnssData.features.forEach((station:any) => {
         this.viewer.entities.add({
           position: Cesium.Cartesian3.fromDegrees(
             station.geometry.coordinates[0],
@@ -390,8 +397,8 @@ export class App implements OnInit, AfterViewInit {
     }
 
     // --- 3. Draw the Fault Lines (if selected) ---
-    if (selectedLayerKey === 'fault_lines' && this.faultLinesData) {
-      this.faultLinesData.features.forEach((fault:any) => {
+    if (selectedLayerKey === 'fault_lines' && faultData) {
+      faultData.features.forEach((fault:any) => {
         this.viewer.entities.add({
           polyline: {
             positions: Cesium.Cartesian3.fromDegreesArray(fault.geometry.coordinates.flat()),
