@@ -162,3 +162,11 @@ mat-label.placeholder {
 .status-watch { color: #00BFFF !important; }
 .status-green { color: #32CD32 !important; }
 .status-stable { color: #32CD32 !important; }
+
+.watchlist-fab {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%); /* Center it */
+  z-index: 10;
+}

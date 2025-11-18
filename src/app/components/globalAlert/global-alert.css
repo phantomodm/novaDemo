@@ -1,0 +1,59 @@
+.alert-container {
+  padding: 0 8px;
+}
+
+.filter-field {
+  width: 100%;
+  font-size: 12px;
+  margin-bottom: -10px; /* Tighten up spacing */
+}
+
+/* Make the table dense */
+.dense-table .mat-mdc-row {
+  height: 40px; /* Standard is usually 48px or 52px */
+}
+
+/* Fix column widths to prevent overflow */
+.mat-column-status {
+  width: 40px;
+  padding-right: 0 !important;
+}
+.mat-column-cell_id {
+  width: 50px;
+}
+.mat-column-kappa {
+  width: 50px;
+  font-weight: bold;
+}
+.mat-column-actions {
+  width: 80px;
+  text-align: right;
+}
+
+.status-icon-small {
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+  vertical-align: middle;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.small-btn {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.small-btn mat-icon {
+  font-size: 18px;
+}
+
+/* Sticky Header Background (Required for dark mode) */
+th.mat-header-cell {
+  background-color: #424242; /* Match your sidenav bg */
+  color: rgba(255,255,255,0.7);
+}

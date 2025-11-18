@@ -48,10 +48,9 @@ import { Firebase } from './core/services/firebase';
 import { ForecastService } from './core/services/forecast';
 import { EventSearchResult, GridForecastResponse, BacktestJob } from './interface/types';
 import { Chart as ChartModalComponent } from './components/chart/chart';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
 import { DataLayerSelector } from './components/data-layer-selector/data-layer-selector';
 import { KappaLegend } from './components/kappa-legend/kappa-legend';
-import { GlobalAlert } from './components/global-alert/global-alert';
 import { CellDetail } from './components/cell-detail/cell-detail';
 import { ActionPlan } from './components/action-plan/action-plan';
 import { ForecastFeature, ForecastResponse } from './core/models/features.model';
@@ -61,6 +60,7 @@ import { GlobeState } from './core/services/globe-state';
 import { BacktestChart } from './components/backtest-chart/backtest-chart';
 import { BacktestSummaryComponent } from './components/backtest-summary/backtest-summary';
 import { GisDataService } from './core/services/gis-data';
+import { GlobalAlertComponent } from "./components/globalAlert/global-alert";
 
 //declare let Cesium: any;
 Cesium.Ion.defaultAccessToken =
@@ -82,25 +82,24 @@ Cesium.Ion.defaultAccessToken =
     MatSliderModule,
     MatProgressBarModule,
     MatListModule,
-    MatDialogModule,
     MatAutocompleteModule,
     ReactiveFormsModule,
     ChartModalComponent,
     DataLayerSelector,
     KappaLegend,
-    GlobalAlert,
     MatChipSet,
     MatChip,
     CellDetail,
     ActionPlan,
     BacktestChart,
     BacktestSummaryComponent,
-  ],
+    GlobalAlertComponent
+],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App implements OnInit, AfterViewInit {
-  private forecastService = inject(ForecastService);
+  public forecastService = inject(ForecastService);
   private globeStateService = inject(GlobeState);
   private gisDataService = inject(GisDataService);
   private firebaseService = inject(Firebase);
@@ -110,7 +109,7 @@ export class App implements OnInit, AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private pollingSubscription: Subscription | null = null;
 
-  public dialog: MatDialog = inject(MatDialog);
+  public dialog = inject(MatDialog);
   protected readonly title = signal('novaDemo');
   readonly cesiumContainer = viewChild.required<ElementRef>('cesiumContainer');
   leftSidenav = viewChild.required<MatSidenav>('leftSidenav');
@@ -126,6 +125,8 @@ export class App implements OnInit, AfterViewInit {
   backtestPlot: SafeUrl | null = null;
   backtestResult: any = null; // Simplified for brevity
   backtestError: string | null = null;
+  customLon: number | null = null;
+  customLat: number | null = null;
 
   // --- Properties for Autocomplete ---
   searchControl = new FormControl();
@@ -459,6 +460,20 @@ export class App implements OnInit, AfterViewInit {
       width: '80vw', // Make it wide
       maxWidth: '1200px',
       autoFocus: false,
+    });
+  }
+
+  /**
+   * Opens a modal dialog to display the
+   * watchlist summary table.
+   */
+  openAlertsDialog() {
+    this.dialog.open(GlobalAlertComponent, {
+      width: '400px', // Good width for a list
+      height: '80vh', // Tall but not full screen
+      maxWidth: '95vw', // Responsive for mobile
+      panelClass: 'alert-dialog-panel', // Optional custom class
+      autoFocus: false
     });
   }
 

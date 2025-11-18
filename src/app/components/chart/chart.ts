@@ -5,7 +5,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { SafeUrl } from '@angular/platform-browser';
 import {
   MAT_DIALOG_DATA,
-  MatDialog,
   MatDialogActions,
   MatDialogClose,
   MatDialogContent,

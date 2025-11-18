@@ -103,7 +103,7 @@
         <button mat-flat-button color="accent" class="full-width" (click)="runBacktest()">
           Run Backtest
         </button>
-        <button
+        <!-- <button
           mat-stroked-button
           class="full-width"
           (click)="openBacktestSummary()"
@@ -111,7 +111,7 @@
         >
           <mat-icon>assessment</mat-icon>
           View Model Performance
-        </button>
+        </button> -->
       </mat-card-content>
     </mat-card>
   </mat-sidenav>
@@ -132,7 +132,7 @@
         <mat-icon style="color: white">close</mat-icon>
       </button>
     </div>
-    <app-global-alert></app-global-alert>
+    <!-- <app-global-alert></app-global-alert> -->
     @if(backtestState === 'processing') {
     <div>
       <mat-card class="info-card">
@@ -213,3 +213,7 @@
     }
   </mat-sidenav>
 </mat-sidenav-container>
+<button mat-fab extended color="warn" class="watchlist-fab" (click)="openAlertsDialog()">
+  <mat-icon>warning</mat-icon>
+  Watchlist ({{ (forecastService.globalAlertData() || []).length }})
+</button>

@@ -11,12 +11,12 @@ import { ForecastService } from '../../core/services/forecast';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'app-global-alert',
+  selector: 'app-global-alert1',
   imports: [MatCardModule, MatIconModule, MatTabsModule, DatePipe, MatListModule, DecimalPipe],
   templateUrl: './global-alert.html',
   styleUrl: './global-alert.css',
 })
-export class GlobalAlert {
+export class GlobalAlert1 {
   @ViewChild('rightSidenav') public rightSidenav!: MatSidenav;
   public forecastService = inject(ForecastService);
   globalStatus$ = this.forecastService.globalStatus;

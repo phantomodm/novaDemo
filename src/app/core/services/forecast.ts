@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, catchError, tap, switchMap, timer } from 'rxjs';
+import { Observable, forkJoin, of, catchError, tap, switchMap, timer } from 'rxjs';
 import { GridForecastResponse, EventSearchResult } from '../../interface/types';
 import { STATUS_RANK, ForecastFeature, StatusKey, ForecastResponse, BacktestSummaryResponse, BacktestSummary} from '../models/features.model';
 
@@ -18,6 +18,21 @@ export interface SimulationResult {
   result_url: string;
 }
 
+export interface WatchlistFeature {
+  type: "Feature";
+  properties: {
+    cell_id: number;
+    status: string;
+    kappa_score: number;
+    alert_start_time: string;
+    last_updated_time: string;
+    
+    // --- NEW FIELDS ---
+    lat: number;
+    lon: number;
+  };
+  geometry: any;
+}
 
 
 
@@ -32,6 +47,7 @@ export class ForecastService {
 
   public gridData: WritableSignal<ForecastResponse | null> = signal(null);
   public globalStatus: WritableSignal<string> = signal('GREEN');
+   public globalAlertData = signal<WatchlistFeature[]>([]);
 
   constructor() {
     // Start polling the API for live data when the service is created
@@ -41,7 +57,15 @@ export class ForecastService {
   // Poll the API every 60 seconds
   private startPolling(): void {
     timer(0, 60000).pipe( // 0s delay, then every 60,000 ms
-      switchMap(() => this.fetchForecastData())
+      // switchMap(() => this.fetchForecastData())
+      switchMap(() => {
+        return forkJoin({
+          grid: this.fetchForecastData(),
+          watchlist: this.fetchWatchlistData()
+        });
+      }
+        
+      )
     ).subscribe({
       next: () => {},
       error: (err) => {
@@ -49,11 +73,29 @@ export class ForecastService {
       }
     });
   }
+  private fetchWatchlistData(): Observable<any> {
+    const url = `${this.apiUrl}/v1/forecast/watchlist`;
+    return this.http.get<any>(url).pipe(
+      tap(response => {
+        console.log("Watchlist response:", response);
+        if (response && response.data && response.data.features) {
+          this.globalAlertData.set(response.data.features);
+        } else {
+          this.globalAlertData.set([]);
+        }
+      }),
+      catchError(err => {
+        console.error("Error fetching watchlist:", err);
+        return of(null);
+      })
+    );
+  }
 
   private fetchForecastData(): Observable<ForecastResponse | null> {
     return this.http.get<ForecastResponse>(`${this.apiUrl}/api/v1/grid_forecast`).pipe(
       tap((response: any) => {
         // 1. Update the grid data for the globe
+        console.log("Forecast response:", response);
         this.gridData.set(response);
 
         // 2. Calculate and update the global status
