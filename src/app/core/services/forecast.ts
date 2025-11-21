@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, WritableSignal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin, of, catchError, tap, switchMap, timer } from 'rxjs';
 import { GridForecastResponse, EventSearchResult } from '../../interface/types';
@@ -26,8 +26,6 @@ export interface WatchlistFeature {
     kappa_score: number;
     alert_start_time: string;
     last_updated_time: string;
-    
-    // --- NEW FIELDS ---
     lat: number;
     lon: number;
   };
@@ -45,14 +43,29 @@ export class ForecastService {
   private planApiUrl = '/api/v1/prescriptive/generate_plan_auto';
   private simApiUrl = '/api/v1/consequence/simulate';
 
-  public gridData: WritableSignal<ForecastResponse | null> = signal(null);
-  public globalStatus: WritableSignal<string> = signal('GREEN');
-   public globalAlertData = signal<WatchlistFeature[]>([]);
+  public utcNow = signal<string>(this.formatUtcDate(new Date()));
+  public gridData = signal<ForecastResponse | null>(null);
+  public globalStatus = signal<string>('GREEN');
+  public globalAlertData = signal<WatchlistFeature[]>([]);
+  public flyToCellId = signal<number | null>(null);
+
 
   constructor() {
     // Start polling the API for live data when the service is created
     this.startPolling();
   }
+
+  private formatUtcDate(date: Date): string {
+    const day = date.getUTCDate().toString().padStart(2, '0');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[date.getUTCMonth()];
+    const year = date.getUTCFullYear();
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes} UTC`;
+  }
+
 
   // Poll the API every 60 seconds
   private startPolling(): void {
@@ -63,9 +76,10 @@ export class ForecastService {
           grid: this.fetchForecastData(),
           watchlist: this.fetchWatchlistData()
         });
-      }
-        
-      )
+      }),
+      tap(() => {
+        this.utcNow.set(this.formatUtcDate(new Date()));
+      })
     ).subscribe({
       next: () => {},
       error: (err) => {
@@ -74,7 +88,7 @@ export class ForecastService {
     });
   }
   private fetchWatchlistData(): Observable<any> {
-    const url = `${this.apiUrl}/v1/forecast/watchlist`;
+    const url = `${this.apiUrl}/api/v1/forecast/watchlist`;
     return this.http.get<any>(url).pipe(
       tap(response => {
         console.log("Watchlist response:", response);
@@ -163,11 +177,13 @@ export class ForecastService {
         worstStatus = status;
       }
     }
+    
     return worstStatus;
   }
 
   // Helper function to get a CSS class for the status
   getStatusClass(status: string): string {
+    console.log(status)
     return `status-${status.toLowerCase().replace('_plus', '')}`;
   }
 

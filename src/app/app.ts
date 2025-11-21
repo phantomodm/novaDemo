@@ -293,8 +293,10 @@ export class App implements OnInit, AfterViewInit {
     if (this.backtestPlot) {
       const dialogRef = this.dialog.open(ChartModalComponent, {
         width: '90vw',
+        height: '80vh',
         maxWidth: '1200px',
-        data: { plotUrl: this.backtestPlot },
+        data: { 
+          plotUrl: this.backtestPlot },
       });
 
       dialogRef.afterClosed().subscribe((result) => {
@@ -302,6 +304,25 @@ export class App implements OnInit, AfterViewInit {
           console.log('The dialog was closed');
           this.rightSidenav().close();
         }
+      });
+    }
+  }
+
+  openNgxChart(): void {
+    console.log(this.backtestResult)
+    if (this.backtestPlot) {
+      const dialogRef = this.dialog.open(BacktestChart, {
+        width: '80vw', // Make it wide
+        maxWidth: '1200px',
+        autoFocus: false,
+        height: 'auto',
+        maxHeight: '90vh',
+        data: {
+          ciTimeseries: this.backtestResult.ci_timeseries,
+          featuresJson: this.backtestResult.features_json,
+          leadTimeDays: this.backtestResult.lead_time_days,
+        },
+        panelClass: 'chart-modal-panel',
       });
     }
   }
@@ -331,10 +352,12 @@ export class App implements OnInit, AfterViewInit {
   //     }
   //   );
   // }
-
-  renderGlobeLayers(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string, gnssData: ForecastResponse | null,
-    faultData: ForecastResponse | null) {
-
+  renderGlobeLayers(
+    geoJsonData: ForecastResponse | null, 
+    selectedLayerKey: DataLayerKey | string, 
+    gnssData: ForecastResponse | null,
+    faultData: ForecastResponse | null
+  ) {
     if (!this.viewer) return;
 
     // Clear all entities
@@ -345,16 +368,18 @@ export class App implements OnInit, AfterViewInit {
       geoJsonData.features.forEach((feature: ForecastFeature) => {
         let valueToRender = 0.0;
         let color: Cesium.Color;
+        let label = "Unknown";
 
-        // ... (This is your existing logic from renderGrid)
         try {
           if (selectedLayerKey === 'final_ci') {
             valueToRender = feature.properties.continuity_index;
+            label = "Final Fused CI (Stability)";
             color = this.getColorForCI(valueToRender);
           } else {
             const featureHistory = JSON.parse(feature.properties.features_json);
             const latestDay = featureHistory[featureHistory.length - 1];
             valueToRender = latestDay[selectedLayerKey] || 0;
+            label = this.globeStateService.layerNames[selectedLayerKey as DataLayerKey];
             color = this.getColorForFeature(valueToRender);
           }
         } catch (e) {
@@ -369,8 +394,173 @@ export class App implements OnInit, AfterViewInit {
             outlineColor: Cesium.Color.WHITE.withAlpha(0.1),
           },
           properties: feature.properties,
-          description: `...`, // Your tooltip
+          description: `
+            <div class="tooltip">
+              <strong>${label}:</strong> ${valueToRender.toFixed(4)} <br>
+              <strong>Status:</strong> ${feature.properties.status}
+            </div>
+          `,
         });
+
+        // --- NEW: Draw Labels for High Alerts ---
+        const status = feature.properties.status;
+        if (['ADVISORY', 'ALERT', 'CRITICAL', 'PRECRITICAL_PLUS'].includes(status)) {
+          
+          // Calculate center of the polygon
+          const positions = Cesium.Cartesian3.fromDegreesArray(feature.geometry.coordinates[0].flat());
+          const center = Cesium.BoundingSphere.fromPoints(positions).center;
+          
+          // Calculate Kappa (1.0 - CI) for display
+          const kappa = (1.0 - feature.properties.continuity_index).toFixed(2);
+          const labelText = `${status}\nκ: ${kappa}`;
+
+          this.viewer.entities.add({
+              position: center,
+              label: {
+                  text: labelText,
+                  font: '14px sans-serif',
+                  fillColor: Cesium.Color.WHITE,
+                  outlineColor: Cesium.Color.BLACK,
+                  outlineWidth: 2,
+                  style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                  disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                  distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 5000000.0) 
+              }
+          });
+        }
+      });
+    }
+
+    // --- 2. Draw the GNSS Stations (if selected) ---
+    if (selectedLayerKey === 'gnss_stations' && gnssData) {
+      gnssData.features.forEach((station: any) => {
+        this.viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(
+            station.geometry.coordinates[0],
+            station.geometry.coordinates[1]
+          ),
+          point: {
+            pixelSize: 6,
+            color: Cesium.Color.AQUA,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 1
+          },
+          properties: station.properties,
+          description: `
+          <div class="tooltip">
+            <strong>Station:</strong> ${station.properties.station_id} <br>
+            <strong>Name:</strong> ${station.properties.station_name}
+          </div>
+        `,
+        });
+      });
+    }
+
+    // --- 3. Draw the Fault Lines (if selected) ---
+    if (selectedLayerKey === 'fault_lines' && faultData) {
+      faultData.features.forEach((fault: any) => {
+        this.viewer.entities.add({
+          polyline: {
+            // GeoJSON LineStrings are [[x,y], [x,y]], so flat(Infinity) is needed
+            positions: Cesium.Cartesian3.fromDegreesArray(fault.geometry.coordinates.flat(Infinity)),
+            width: 2,
+            material: Cesium.Color.RED.withAlpha(0.8),
+          },
+          properties: fault.properties,
+          description: `
+          <div class="tooltip">
+            <strong>Fault Line</strong>
+          </div>
+        `,
+        });
+      });
+    }
+  }
+
+  renderGlobeLayers1(geoJsonData: ForecastResponse, selectedLayerKey: DataLayerKey | string, gnssData: ForecastResponse | null,
+    faultData: ForecastResponse | null) {
+
+    if (!this.viewer) return;
+
+    // Clear all entities
+    this.viewer.entities.removeAll();
+
+    // --- 1. Draw the primary grid data (if it's loaded) ---
+    if (geoJsonData && geoJsonData.features.length > 0) {
+      geoJsonData.features.forEach((feature: ForecastFeature) => {
+        let valueToRender = 0.0;
+        let color: Cesium.Color;
+        let label = "Unknown";
+
+        // ... (This is your existing logic from renderGrid)
+        try {
+          if (selectedLayerKey === 'final_ci') {
+            valueToRender = feature.properties.continuity_index;
+            label = 'Final Fused CI (Stability)';
+            color = this.getColorForCI(valueToRender);
+          } else {
+            const featureHistory = JSON.parse(feature.properties.features_json);
+            const latestDay = featureHistory[featureHistory.length - 1];
+            valueToRender = latestDay[selectedLayerKey] || 0;
+            label = this.globeStateService.layerNames[selectedLayerKey as DataLayerKey];
+            color = this.getColorForFeature(valueToRender);
+          }
+        } catch (e) {
+          color = Cesium.Color.BLACK.withAlpha(0.0);
+        }
+
+        this.viewer.entities.add({
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArray(feature.geometry.coordinates[0].flat()),
+            material: color.withAlpha(0.6),
+            outline: true,
+            outlineColor: Cesium.Color.WHITE.withAlpha(0.1),
+          },
+          properties: feature.properties,
+          description: `
+            <div class="tooltip">
+              <strong>${label}:</strong> ${valueToRender.toFixed(4)} <br>
+              <strong>Status:</strong> ${feature.properties.status}
+            </div>
+          `, // Your tooltip
+        });
+// 2. NEW: Draw Lead Time Label for High Alerts
+      // Check if status is one of the high-priority ones
+      const status = feature.properties.status;
+      if (['ADVISORY', 'ALERT', 'CRITICAL', 'PRECRITICAL_PLUS'].includes(status)) {
+          
+          // We need to calculate the center of the cell to place the text
+          // Cesium can find the center of the polygon we just drew
+          const positions = Cesium.Cartesian3.fromDegreesArray(feature.geometry.coordinates[0].flat());
+          const center = Cesium.BoundingSphere.fromPoints(positions).center;
+
+          // Get the lead time (if available)
+          // Note: live_forecast_grid might not have 'lead_time_days' calculated 
+          // unless you added it to the live engine. 
+          // If not, we can show the 'status' or 'kappa' as a proxy.
+          //const labelText = `${status}\nκ: ${(1.0 - feature.properties.continuity_index).toFixed(2)}`;
+          const kappa = (1.0 - feature.properties.continuity_index).toFixed(2);
+          const labelText = `${status}\nκ: ${kappa}`;
+
+          this.viewer.entities.add({
+              position: center,
+              label: {
+                  text: labelText,
+                  font: '14px sans-serif',
+                  fillColor: Cesium.Color.WHITE,
+                  outlineColor: Cesium.Color.BLACK,
+                  outlineWidth: 2,
+                  style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                  disableDepthTestDistance: Number.POSITIVE_INFINITY, // Always show on top
+                  distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 5000000.0) // Hide when zoomed far out
+              }
+          });
+      }
+
       });
     }
 
@@ -400,9 +590,10 @@ export class App implements OnInit, AfterViewInit {
     // --- 3. Draw the Fault Lines (if selected) ---
     if (selectedLayerKey === 'fault_lines' && faultData) {
       faultData.features.forEach((fault:any) => {
+        const flatCoords = fault.geometry.coordinates.flat(Infinity);
         this.viewer.entities.add({
           polyline: {
-            positions: Cesium.Cartesian3.fromDegreesArray(fault.geometry.coordinates.flat()),
+            positions: Cesium.Cartesian3.fromDegreesArray(flatCoords),
             width: 2,
             material: Cesium.Color.RED,
           },
@@ -460,6 +651,10 @@ export class App implements OnInit, AfterViewInit {
       width: '80vw', // Make it wide
       maxWidth: '1200px',
       autoFocus: false,
+      height: 'auto',
+      maxHeight: '90vh',
+      data: this.backtestResult, // Pass the full result object
+      panelClass: 'chart-modal-panel'
     });
   }
 
@@ -515,11 +710,11 @@ export class App implements OnInit, AfterViewInit {
         takeWhile((status) => status.status === 'processing', true)
       )
       .subscribe({
-        next: (status) => {
-          console.log(status);
-          if (status.status === 'complete') {
+        next: (statusResponse) => {
+          console.log(statusResponse);
+          if (statusResponse.status === 'complete' && statusResponse.result) {
             this.backtestState = 'complete';
-            this.backtestResult = status.result;
+            this.backtestResult = statusResponse.result;
 
             this.flyToEvent(
               this.backtestResult.event_details.lat,
@@ -527,9 +722,9 @@ export class App implements OnInit, AfterViewInit {
               this.backtestResult.event_details.name
             );
             this.backtestPlot = this.sanitizer.bypassSecurityTrustUrl(
-              'data:image/png;base64,' + status.result.plot_base64
+              'data:image/png;base64,' + statusResponse.result.plot_base64
             );
-          } else if (status.status === 'failed') {
+          } else if (statusResponse.status === 'failed') {
             this.backtestState = 'failed';
             this.backtestError = 'Backtest job failed on server.';
             this.rightSidenav().close();

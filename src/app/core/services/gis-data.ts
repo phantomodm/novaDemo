@@ -23,7 +23,7 @@ export class GisDataService {
    */
   getGnssStations(): Observable<ForecastResponse> {
     if (!this.gnssStations$) {
-      this.gnssStations$ = this.http.get<ForecastResponse>(`${this.apiUrl}/v1/data/gnss_stations`).pipe(
+      this.gnssStations$ = this.http.get<ForecastResponse>(`${this.apiUrl}/api/v1/data/gnss_stations`).pipe(
         shareReplay(1) // Cache the result
       );
     }
@@ -35,7 +35,7 @@ export class GisDataService {
    */
   getFaultLines(): Observable<ForecastResponse> {
     if (!this.faultLines$) {
-      this.faultLines$ = this.http.get<ForecastResponse>(`${this.apiUrl}/v1/data/fault_lines`).pipe(
+      this.faultLines$ = this.http.get<ForecastResponse>(`${this.apiUrl}/api/v1/data/fault_lines`).pipe(
         shareReplay(1) // Cache the result
       );
     }

@@ -62,7 +62,7 @@
       <mat-card-header>
         <mat-icon mat-card-avatar>update</mat-icon>
         <mat-card-title>Live Forecast</mat-card-title>
-        <mat-card-subtitle>Last Updated: 16-Oct-2025 14:32 UTC</mat-card-subtitle>
+        <mat-card-subtitle>Last Updated: {{ forecastService.utcNow() }} </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <app-data-layer-selector></app-data-layer-selector>
@@ -176,11 +176,23 @@
             class="chart-image clickable"
             (click)="openChartModal()"
           />
-          <app-backtest-chart
-            [ciTimeseries]="backtestResult.ci_timeseries"
-            [featuresJson]="backtestResult.features_json"
+          <button
+            mat-stroked-button
+            class="full-width"
+            (click)="openNgxChart()"
+            style="margin-top: 12px"
           >
-          </app-backtest-chart>
+            <mat-icon>assessment</mat-icon>
+            Open Interactive Chart
+          </button>
+          <!-- @if(backtestResult && backtestResult.ci_timeseries && backtestResult.features_json) {
+            <app-backtest-chart
+              [ciTimeseries]="backtestResult.ci_timeseries"
+              [featuresJson]="backtestResult.features_json"
+              [leadTimeDays]="backtestResult.lead_time_days">
+            >
+            </app-backtest-chart>
+          }           -->
         </mat-card-content>
       </mat-card>
     </div>

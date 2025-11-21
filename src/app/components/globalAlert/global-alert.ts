@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, ViewChild , signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -51,7 +51,8 @@ export class GlobalAlertComponent implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<GlobalAlertFeature>([]);
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild('appComponent') appComponent!: App;
-
+  flyToCellId = signal<any>(null);
+  
   constructor(
     // --- INJECT DIALOG REF ---
     
@@ -90,8 +91,8 @@ export class GlobalAlertComponent implements OnInit, AfterViewInit {
   flyToEvent(cell: GlobalAlertFeature) {
     // 1. Perform the action on the main map
     //this.appComponent.panToCell(cell as any);
-    this.appComponent.flyToEvent(cell.properties.lat, cell.properties.lon, cell.properties.cell_id.toString());
-    
+    //this.appComponent.flyToEvent(cell.properties.lat, cell.properties.lon, cell.properties.cell_id.toString());
+    this.flyToCellId.set({lat: cell.properties.lat, lon: cell.properties.lon, cellId: cell.properties.cell_id.toString()});
     // 2. CLOSE THE MODAL so the user can see the map
     //this.dialogRef.close();
   }
