@@ -151,6 +151,7 @@ export class App implements OnInit, AfterViewInit {
       const selectedLayerKey = this.globeStateService.selectedLayer();
       const gnssData = this.gnssStationsData(); // <-- Read new signal
       const faultData = this.faultLinesData(); // <-- Read new sign
+      const flyToCell = this.forecastService.flyToCellId();
 
       // 2. Honor your constraint: "do not update without both values present"
       //    We also must check if the 'viewer' has been initialized
@@ -165,6 +166,11 @@ export class App implements OnInit, AfterViewInit {
           this.viewer.entities.removeAll();
         });
       }
+      
+      if(flyToCell) {
+        const {lat, lon, cellId} = flyToCell;
+        this.flyToEvent(lat, lon, cellId);
+      }
     });
   }
 
@@ -173,7 +179,7 @@ export class App implements OnInit, AfterViewInit {
     return event && event.name ? `${event.name} (${event.mag})` : '';
   }
 
-  flyToEvent(lat: number, lon: number, name: string) {
+  flyToEvent(lat: number, lon: number, name = '') {
     console.log(lat, lon, name);
     if (!this.viewer || !this.viewer.scene || !this.viewer.camera) {
       return;

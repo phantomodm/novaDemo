@@ -47,7 +47,7 @@ export class ForecastService {
   public gridData = signal<ForecastResponse | null>(null);
   public globalStatus = signal<string>('GREEN');
   public globalAlertData = signal<WatchlistFeature[]>([]);
-  public flyToCellId = signal<number | null>(null);
+  public flyToCellId = signal<any | null>(null);
 
 
   constructor() {
